@@ -15,7 +15,7 @@ object Problems {
     var current = 0.0
     var i = 0
     for (i <- 0 to 999) {
-      results(i) = current
+      results(i) = math.sqrt(current)
       current += (1.0 / 999.0)
     }
     return results
@@ -144,10 +144,8 @@ object Problems {
 
   def main(args:Array[String]) {
 
-    // compare variance function to library variance
-    println("My variance function: " + variance(genUniformPoints()))
-    var apacheMathVariance = new Variance()
-    println("Apache math computed variance: " + apacheMathVariance.evaluate(genUniformPoints()))
+    // compute variance of points uniformly distributed along unit interval
+    println("variance function: " + variance(genUniformPoints()))
     
     // Only generating 500 samples because too many samples causes KS test to return NaN.
     var normal = new NormalDistribution(0.0, 1.0)
