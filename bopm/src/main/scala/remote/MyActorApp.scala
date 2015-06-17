@@ -39,6 +39,8 @@ object MyActorApp extends App  {
 		)
 	)
 
+	var finished = 0
+
 	val stockPricerMap = stockMap.map{stock =>
 		(stock._1, system.actorOf(Props(new StockPricer(stock._1, stock._2("initial"), stock._2("volatility"), stock._2("divYield"), riskFreeRate, deltaT)), name = stock._1 + "Pricer"))
 	}.toMap
@@ -73,6 +75,11 @@ object MyActorApp extends App  {
 				count += 1
 				if (count == 20) {
 					println(stockName + " call options: \n" + optionPrices.mkString("\n"))
+
+					finished += 1
+					if (finished >= stockMap.size) {
+						system.shutdown
+					}
 				}
 		}
 
