@@ -10,16 +10,11 @@ object MyActorApp extends App  {
 	val myAddress = system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress.toString
 	println("My Akka Address is:" + myAddress)
 
-	// make time period 3 weeks
+	// make time period 3 weeks (Jul 10 call)
 	val deltaT = 18.0 / 252.0
 	// specify parameters
 	val riskFreeRate = 0.0027
-	val volatility = 0.127952
-	val strikePrice = 65.0
 
-	val divYield = 0.0257
-
-	val initial = 68.37
 
 	val stockMap:Map[String, Map[String, Double]] = Map(
 		"JPM" -> Map(
@@ -36,6 +31,36 @@ object MyActorApp extends App  {
 			"initial" -> 127.6,
 			"volatility" -> 0.145049,
 			"divYield" -> 0.0163
+		),
+		"MMM" -> Map(
+			"initial" -> 156.49,
+			"volatility" -> 0.11587,
+			"divYield" -> 0.0262
+		),
+		"AXP" -> Map(
+			"initial" -> 80.39,
+			"volatility" -> 0.121522,
+			"divYield" -> 0.0144
+		),
+		"BA" -> Map(
+			"initial" -> 142.36,
+			"volatility" -> 0.1387,
+			"divYield" -> 0.0282
+		),
+		"CAT" -> Map(
+			"initial" -> 86.51,
+			"volatility" -> 0.154314,
+			"divYield" -> 0.0356
+		),
+		"CVX" -> Map(
+			"initial" -> 99.95,
+			"volatility" -> 0.119051,
+			"divYield" -> 0.0428
+		),
+		"CSCO" -> Map(
+			"initial" -> 28.78,
+			"volatility" -> 0.12598,
+			"divYield" -> 0.0292
 		)
 	)
 
@@ -64,7 +89,7 @@ object MyActorApp extends App  {
 
 				(-9 to 10).map{i =>
 					val newStrike = baseStrike + i * 0.5
-					val newOptionPricer = system.actorOf(Props(new OptionPricer(newStrike, 100)), name = "Option" + newStrike)
+					val newOptionPricer = system.actorOf(Props(new OptionPricer(newStrike, 100)), name = stockName + "Option" + newStrike)
 					newOptionPricer ! "start"
 				}
 			case finishedOption:Tuple2[Double, Double] =>
@@ -95,7 +120,7 @@ object MyActorApp extends App  {
 			val nodeMap:Map[Int, Map[Int, ActorRef]] =
 			(0 to depth).map{i => 
 				(i, (0 to i).map{j => 
-					(j, system.actorOf(Props(new OptionNode(i, j)), name = strikePrice + "Node" + i + "," + j))}.toMap
+					(j, system.actorOf(Props(new OptionNode(i, j)), name = stockName + strikePrice + "Node" + i + "," + j))}.toMap
 				)
 			}.toMap
 
