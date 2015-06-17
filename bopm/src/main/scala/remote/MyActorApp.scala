@@ -10,8 +10,8 @@ object MyActorApp extends App  {
 	val myAddress = system.asInstanceOf[ExtendedActorSystem].provider.getDefaultAddress.toString
 	println("My Akka Address is:" + myAddress)
 
-	// calculate deltaT, using 4 weeks so 20 trading days
-	val deltaT = 3.0 / 252.0
+	// make time period 3 weeks
+	val deltaT = 18.0 / 252.0
 	// specify parameters
 	val riskFreeRate = 0.0027
 	val volatility = 0.127952
@@ -21,11 +21,34 @@ object MyActorApp extends App  {
 
 	val initial = 68.37
 
-	var newPricer = system.actorOf(Props(new StockPricer(initial, volatility, divYield, riskFreeRate, deltaT)), name = "Pricer")
+	val stockMap:Map[String, Map[String, Double]] = Map(
+		"JPM" -> Map(
+			"initial" -> 68.37,
+			"volatility" -> 0.127952,
+			"divYield" -> 0.0257
+		),
+		"KO"->Map(
+			"initial" -> 40.08,
+			"volatility" -> 0.065745,
+			"divYield" -> 0.0329
+		)
 
-	newPricer ! "start"
+	)
 
-	class StockPricer(initial:Double, volatility:Double, divYield:Double, riskFreeRate:Double, deltaT:Double) extends Actor {
+	val stockPricerMap = stockMap.map{stock =>
+		(stock._1, system.actorOf(Props(new StockPricer(stock._1, stock._2("initial"), stock._2("volatility"), stock._2("divYield"), riskFreeRate, deltaT)), name = stock._1 + "Pricer"))
+	}.toMap
+
+	stockPricerMap.foreach{stockTuple =>
+		stockTuple._2 ! "start"
+	}
+
+
+	// var newPricer = system.actorOf(Props(new StockPricer(initial, volatility, divYield, riskFreeRate, deltaT)), name = "Pricer")
+
+	//newPricer ! "start"
+
+	class StockPricer(stockName:String, initial:Double, volatility:Double, divYield:Double, riskFreeRate:Double, deltaT:Double) extends Actor {
 
 		val baseStrike = initial.toInt.toDouble
 		var count = 0
@@ -45,7 +68,7 @@ object MyActorApp extends App  {
 				optionPrices(index) = finishedOption
 				count += 1
 				if (count == 20) {
-					println(optionPrices.mkString("\n"))
+					println(stockName + " call options: \n" + optionPrices.mkString("\n"))
 				}
 		}
 
@@ -90,7 +113,7 @@ object MyActorApp extends App  {
 							optionPrice = math.max(optionPrice, exercisePrice)
 
 							if (level == 0) {
-								newPricer ! (strikePrice, optionPrice)
+								stockPricerMap(stockName) ! (strikePrice, optionPrice)
 							} else {
 								if (nodeMap(level - 1).contains(height - 1)) {
 									nodeMap(level - 1)(height - 1) ! optionPrice
