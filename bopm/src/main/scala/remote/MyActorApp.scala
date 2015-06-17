@@ -61,6 +61,31 @@ object MyActorApp extends App  {
 			"initial" -> 28.78,
 			"volatility" -> 0.12598,
 			"divYield" -> 0.0292
+		),
+		"DIS" -> Map(
+			"initial" -> 111.05,
+			"volatility" -> 0.09465,
+			"divYield" -> 0.0104
+		),
+		"DD" -> Map(
+			"initial" -> 69.19,
+			"volatility" -> 0.133633,
+			"divYield" -> 0.0283
+		),
+		"XOM" -> Map(
+			"initial" -> 84.53,
+			"volatility" -> 0.097007,
+			"divYield" -> 0.0346
+		),
+		"GE" -> Map(
+			"initial" -> 27.19,
+			"volatility" -> 0.095077,
+			"divYield" -> 0.0338
+		),
+		"GS" -> Map(
+			"initial" -> 212.85,
+			"volatility" -> 0.126293,
+			"divYield" -> 0.0122
 		)
 	)
 
