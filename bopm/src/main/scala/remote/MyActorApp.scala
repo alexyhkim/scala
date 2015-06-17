@@ -27,12 +27,16 @@ object MyActorApp extends App  {
 			"volatility" -> 0.127952,
 			"divYield" -> 0.0257
 		),
-		"KO"->Map(
+		"KO" -> Map(
 			"initial" -> 40.08,
 			"volatility" -> 0.065745,
 			"divYield" -> 0.0329
+		),
+		"AAPL" -> Map(
+			"initial" -> 127.6,
+			"volatility" -> 0.145049,
+			"divYield" -> 0.0163
 		)
-
 	)
 
 	val stockPricerMap = stockMap.map{stock =>
@@ -113,7 +117,9 @@ object MyActorApp extends App  {
 							optionPrice = math.max(optionPrice, exercisePrice)
 
 							if (level == 0) {
-								stockPricerMap(stockName) ! (strikePrice, optionPrice)
+
+								var roundedPrice = math.rint(optionPrice * 100.0) / 100.0
+								stockPricerMap(stockName) ! (strikePrice, roundedPrice)
 							} else {
 								if (nodeMap(level - 1).contains(height - 1)) {
 									nodeMap(level - 1)(height - 1) ! optionPrice
