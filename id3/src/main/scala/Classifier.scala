@@ -1,5 +1,6 @@
 import scala.math
 import scala.collection.mutable.HashMap
+import scala.util.Random
 
 object Classifier{
 
@@ -8,33 +9,107 @@ object Classifier{
     var children = HashMap[String, DecisionNode]()
     var isLeaf = false
     var leafValue = ""
+
+    // debugging purposes
+    // override def toString():String = {
+
+    //   var initial = ""
+    //   if (isLeaf) {
+    //     initial += leafValue + "\n"
+    //   } else {
+    //     initial += attrIndex + "\n"
+
+    //     for ((k, v) <- children) {
+    //       initial += k + ", "
+    //     }
+
+    //     for ((k, v) <- children) {
+
+    //       initial += "\n" + k
+    //       initial += v.toString()
+    //     }
+    //   }
+
+    //   return initial
+    // }
+
+
   }
 
+  def classify(rootNode:DecisionNode, line:Array[String]):String = {
+    var currentNode = rootNode
 
-  def constructTree(lines:Array[Array[String]], chosenAttrs:HashMap[Int, Int], parentNode:DecisionNode) = {
+    while (!currentNode.isLeaf) {
+      val lineAttr = line(currentNode.attrIndex)
+      currentNode = currentNode.children(lineAttr)
+    }
+    return currentNode.leafValue
+  }
 
+  def partitionLines(lines:Array[Array[String]], partitionIndex:Int):HashMap[String, Array[Array[String]]] = {
+    var partitions = HashMap[String, Array[Array[String]]]()
+
+    val counts = countsMap(lines, partitionIndex)
+
+    for ((attrVal, count) <- counts) {
+      partitions(attrVal) = lines.filter(line => line(partitionIndex) == attrVal)
+    }
+
+    return partitions
+
+  }
+
+  def constructTree(lines:Array[Array[String]], chosenAttrs:HashMap[Int, Int]):DecisionNode = {
+    
     val line = lines(0)
-    var i = 0
-    var maxIg = 0.0
-    var maxAttrI = 0
     val targetEntropyVal = targetEntropy(lines)
+
+    //base case
     if (targetEntropyVal <= 0.0) {
-      var leafNode = new DecisionNode(line.length - 1)
+      val leafNode = new DecisionNode(line.length - 1)
       leafNode.isLeaf = true
       leafNode.leafValue = line(line.length - 1)
-    }
+      return leafNode
+    } else {
 
-    for (i <- 0 to line.length - 2) {
-      val ig = targetEntropyVal - splitEntropy(lines, i)
-      if (ig >= maxIg) {
-        maxIg = ig
-        maxAttrI = i
+
+      var i = 0
+      var maxIg = 0.0
+      var maxAttrI = -1
+
+      for (i <- 0 to line.length - 2) {
+        if (!chosenAttrs.contains(i)) {
+          val ig = targetEntropyVal - splitEntropy(lines, i)
+          if (ig >= maxIg) {
+            maxIg = ig
+            maxAttrI = i
+          }
+        }
       }
+
+      if (maxAttrI == -1) {
+
+        // base case, split on every attribute but target takes different values
+        val targetCounts = countsMap(lines, line.length - 1)
+        val mostFrequent = targetCounts.maxBy(_._2)._1
+
+        val leafNode = new DecisionNode(line.length - 1)
+        leafNode.isLeaf = true
+        leafNode.leafValue = mostFrequent
+        return leafNode
+      } else {
+
+        chosenAttrs(maxAttrI) = 1
+        val chosen = new DecisionNode(maxAttrI)
+        val partitions = partitionLines(lines, maxAttrI)
+        for ((attrVal, partition) <- partitions) {
+          chosen.children(attrVal) = constructTree(partition, chosenAttrs)
+        }
+        return chosen
+
+      }
+
     }
-
-
-
-
 
   }
 
@@ -119,18 +194,64 @@ object Classifier{
 
 
   def main(args:Array[String]) {
-    val lineString = io.Source.fromFile("src/main/resources/car.data.txt").mkString
-    val lines = lineString.split("\n")
-    
-    val lineArray = new Array[Array[String]](lines.length)
+    // val trainingLines = io.Source.fromFile("src/main/resources/poker-hand-training-true.data.txt").mkString.split("\n")
+    // val trainingSet = new Array[Array[String]](trainingLines.length)
+    // var i = 0
+    // for (i <- 0 to trainingLines.length-1) {
+    //   trainingSet(i) = trainingLines(i).split(",")
+    // }
 
+    // val testingLines = io.Source.fromFile("src/main/resources/poker-hand-testing.data.txt").mkString.split("\n")
+    // var correct = 0
+    // var total = testingLines.length
+
+    // var chosenAttrs = new HashMap[Int, Int]()
+    // var dTree = constructTree(trainingSet, chosenAttrs)
+    // var j = 0
+    // for (j <- 0 to testingLines.length - 1) {
+    //   val testingLineArray = testingLines(j).split(",")
+    //   val actual = testingLineArray(testingLineArray.length - 1)
+    //   val classified = classify(dTree, testingLineArray)
+
+    //   if (actual == classified) {
+    //     correct += 1
+    //   }
+    // }
+
+    // println(correct)
+
+    // randomly choose lines to test
+    val shuffledLines = (Random.shuffle(io.Source.fromFile("src/main/resources/car.data.txt").mkString.split("\n").toSeq)).toArray
+
+    val trainingLines = shuffledLines  
+    val trainingSet = new Array[Array[String]](trainingLines.length)
     var i = 0
-    for (i <- 0 to lines.length-1) {
-      lineArray(i) = lines(i).split(",")
+    for (i <- 0 to trainingLines.length-1) {
+      trainingSet(i) = trainingLines(i).split(",")
     }
 
-    println(splitEntropy(lineArray, 0))
-    //constructTree(lineArray)
+    // test on 200 random lines
+    val testingLines = shuffledLines.splitAt(200)._1
+    var correct = 0
+    var total = testingLines.length
+
+    var chosenAttrs = new HashMap[Int, Int]()
+    var dTree = constructTree(trainingSet, chosenAttrs)
+    var j = 0
+    for (j <- 0 to testingLines.length - 1) {
+      val testingLineArray = testingLines(j).split(",")
+      val actual = testingLineArray(testingLineArray.length - 1)
+      val classified = classify(dTree, testingLineArray)
+
+      if (actual == classified) {
+        correct += 1
+      }
+    }
+
+    println("accuracy: " + correct.toDouble / total.toDouble)
+
+
+
 
 
     
